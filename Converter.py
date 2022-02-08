@@ -5,7 +5,8 @@ from tkinter import Tk, Text, Label, Button, Entry, OptionMenu, StringVar, W, E,
 
 class Conversion_Structure( object ):
     """Struct for conversion data"""
-
+    
+    # { TYPE_OF_UNITS{ FROM_UNIT{ TO_UNIT_VALUE } } }
     CONVERSION_STRUCTURE  = {
             'Length':{ 
                     'MM':{ 'CM':0.1,   'MT':0.001, 'KM':1e-6,   'IN':0.0393701 },
@@ -105,7 +106,7 @@ class Converter( Conversion_Structure ):
 
     # Change in the 'TO-MENU' will causes a change in the 'REPLY-FIELD'
     def ChangeInToMenu( self, *args:None ) -> None:
-        self.updateReplyFielf( )
+        self.updateReplyField( )
 
 
 
@@ -117,7 +118,7 @@ class Converter( Conversion_Structure ):
         self.ReplyTextField.insert( END, self.ReplyTextFieldMessage )
 
     # Updates the output field based on user input
-    def updateReplyFielf( self ) -> None:
+    def updateReplyField( self ) -> None:
         if self.userEnteredAmount == 0:
             self.ReplyTextFieldMessage = '0.0'
         else:
@@ -143,7 +144,7 @@ class Converter( Conversion_Structure ):
         try:
             if float( textEntry ):
                 self.userEnteredAmount = float( textEntry )
-                self.updateReplyFielf( )
+                self.updateReplyField( )
                 return True
         except ValueError:
             return False

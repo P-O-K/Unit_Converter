@@ -1,12 +1,12 @@
 
-from tkinter import Tk, Text, Label, Button, Entry, OptionMenu, StringVar, W, E, END
-
+from tkinter import Tk, Label, Button, Entry, Text
+from tkinter import OptionMenu, StringVar, W, E, END
+from _tkinter import TclError as _tkinter_TclError
 
 
 class Conversion_Structure( object ):
-    """Struct for conversion data"""
     
-    # { TYPE_OF_UNITS{ FROM_UNIT{ TO_UNIT_VALUE } } }
+    # { UNITS_FOR_TYPE{ =>FROM_UNIT_VALUE{ =>TO_UNIT_VALUE } } }
     CONVERSION_STRUCTURE  = {
             'Length':{ 
                     'MM':{ 'CM':0.1,   'MT':0.001, 'KM':1e-6,   'IN':0.0393701 },
@@ -53,11 +53,9 @@ class Converter( Conversion_Structure ):
         self.set_FromMenu( )
         self.set_ToMenu( )
         self.set_EQ_label( )
-        self.assignValidationMethod( )
-        self.set_ReplyField( )
+        self.assignValidationFunction( )
+        self.set_ResponceField( )
         self.asignmentLayout( )
-        self.masterLoop( )
-
 
 
 
@@ -65,17 +63,8 @@ class Converter( Conversion_Structure ):
         self.TypeMenuItems = { item for item,_ in self.CONVERSION_STRUCTURE.items( ) }
         self.TypeMenuText = StringVar( )
         self.TypeMenuText.set( list( self.TypeMenuItems )[ 0 ] )
-        self.TypeMenuText.trace( 'w',  self.ChangeInTypeMenu )
+        self.TypeMenuText.trace( 'w',  self.updateFromMenu )
         self.TypeMenu = OptionMenu( self.MASTER, self.TypeMenuText, *self.TypeMenuItems )
-
-    # Change in the 'TYPE-MENU' will  causes a change in the 'FROM-MENU' 
-    def ChangeInTypeMenu( self, *args:None ) -> None:
-        self.FromMenu[ 'menu' ].delete( 0, END )
-        self.FromMenuText.set( list( self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ] )[ 0 ] )
-        for i,_ in self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ].items( ):
-            self.FromMenu[ 'menu' ].add_command( label=i, command=lambda value=i: self.FromMenuText.set( value ) )
-
-
 
 
 
@@ -83,17 +72,17 @@ class Converter( Conversion_Structure ):
         self.FromMenuItems = { item for item,_ in self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ].items( ) }
         self.FromMenuText = StringVar( )
         self.FromMenuText.set( list( self.FromMenuItems )[ 0 ] )
-        self.FromMenuText.trace( 'w', self.ChangeInFromMenu )
+        self.FromMenuText.trace( 'w', self.updateToMenu )
         self.FromMenu = OptionMenu( self.MASTER, self.FromMenuText, *self.FromMenuItems )
 
-    # Change in the 'FROM-MENU' will causes a change in the 'TO-MENU'
-    def ChangeInFromMenu( self, *args:None ) -> None:
-        self.ToMenu[ 'menu' ].delete( 0, END )
-        self.ToMenuText.set( list( self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ][ self.FromMenuText.get( ) ] )[ 0 ] )
-        for i,_ in self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ][ self.FromMenuText.get( ) ].items( ):
-            self.ToMenu[ 'menu' ].add_command( label=i, command=lambda value=i: self.ToMenuText.set( value ) )
 
 
+    # Changing the 'TYPE-MENU' will causes a change in the 'FROM-MENU' 
+    def updateFromMenu( self, *args:None ) -> None:
+        self.FromMenu[ 'menu' ].delete( 0, END )
+        self.FromMenuText.set( list( self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ] )[ 0 ] )
+        for i,_ in self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ].items( ):
+            self.FromMenu[ 'menu' ].add_command( label=i, command=lambda value=i: self.FromMenuText.set( value ) )
 
 
 
@@ -101,40 +90,51 @@ class Converter( Conversion_Structure ):
         self.ToMenuItems = { item for item,_ in self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ][ self.FromMenuText.get( ) ].items( ) }
         self.ToMenuText = StringVar( )
         self.ToMenuText.set( list( self.ToMenuItems )[ 0 ] )
-        self.ToMenuText.trace( 'w', self.ChangeInToMenu )
+        self.ToMenuText.trace( 'w', self.responceUpdate ) 
         self.ToMenu = OptionMenu( self.MASTER, self.ToMenuText, *self.ToMenuItems )
 
-    # Change in the 'TO-MENU' will causes a change in the 'REPLY-FIELD'
-    def ChangeInToMenu( self, *args:None ) -> None:
-        self.updateReplyField( )
+
+
+    # Changing the 'FROM-MENU' will causes a change in the 'TO-MENU'
+    def updateToMenu( self, *args:None ) -> None:
+        self.ToMenu[ 'menu' ].delete( 0, END )
+        self.ToMenuText.set( list( self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ][ self.FromMenuText.get( ) ] )[ 0 ] )
+        for i,_ in self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ][ self.FromMenuText.get( ) ].items( ):
+            self.ToMenu[ 'menu' ].add_command( label=i, command=lambda value=i: self.ToMenuText.set( value ) )
 
 
 
+    def set_ResponceField( self ) -> None:
+        self.ResponceTextFieldMessage = '0.0'
+        self.ResponceTextField = Text( self.MASTER, height=1, width=20 )
+        self.ResponceTextField.insert( END, self.ResponceTextFieldMessage )
 
 
-    def set_ReplyField( self ) -> None:
-        self.ReplyTextFieldMessage = '0.0'
-        self.ReplyTextField = Text( self.MASTER, height=1, width=20 )
-        self.ReplyTextField.insert( END, self.ReplyTextFieldMessage )
 
     # Updates the output field based on user input
-    def updateReplyField( self ) -> None:
+    def updateResponceField( self ) -> None:
         if self.userEnteredAmount == 0:
-            self.ReplyTextFieldMessage = '0.0'
+            self.ResponceTextFieldMessage = '0.0'
         else:
             self.convertedTotal = self.userEnteredAmount *self.CONVERSION_STRUCTURE[ self.TypeMenuText.get( ) ][ self.FromMenuText.get( ) ][ self.ToMenuText.get( ) ]
-            self.ReplyTextFieldMessage = f'{ self.convertedTotal }'
-        self.ReplyTextField.delete( '1.0', END )
-        self.ReplyTextField.insert( END, self.ReplyTextFieldMessage )
+            self.ResponceTextFieldMessage = f'{ self.convertedTotal }'
+        self.ResponceTextField.delete( '1.0', END )
+        self.ResponceTextField.insert( END, self.ResponceTextFieldMessage )
 
 
+
+    # Change in the 'TO-MENU' will causes a change in the 'RESPONCE-FIELD'
+    def responceUpdate( self, *args:None ) -> None:
+        self.updateResponceField( )
 
 
 
     # Assign function for validating user input 
-    def assignValidationMethod( self ) -> None:
+    def assignValidationFunction( self ) -> None:
         vcmd = self.MASTER.register( self.validate )
         self.entryField = Entry( self.MASTER, validate='key', validatecommand=( vcmd, '%P' ) )
+
+
 
     # Validate function for user input
     def validate( self, textEntry:str ) -> None:
@@ -144,12 +144,10 @@ class Converter( Conversion_Structure ):
         try:
             if float( textEntry ):
                 self.userEnteredAmount = float( textEntry )
-                self.updateReplyField( )
+                self.updateResponceField( )
                 return True
         except ValueError:
             return False
-
-
 
 
 
@@ -163,12 +161,12 @@ class Converter( Conversion_Structure ):
 
     # Place all elements on a grid structure on the master( WINDOW )
     def asignmentLayout( self ) -> None:
-        self.TypeMenu.grid(       row=0, column=0, columnspan=5, sticky=W+E )
-        self.FromMenu.grid(       row=1, column=0, columnspan=2, sticky=W+E )
-        self.entryField.grid(     row=2, column=0, columnspan=2             )
-        self.EqualSignLabel.grid( row=1, column=2,               sticky=W+E )
-        self.ToMenu.grid(         row=1, column=3, columnspan=2, sticky=W+E )
-        self.ReplyTextField.grid( row=2, column=3, columnspan=2, sticky=W+E )
+        self.TypeMenu.grid(          row=0, column=0, columnspan=5, sticky=W+E )
+        self.FromMenu.grid(          row=1, column=0, columnspan=2, sticky=W+E )
+        self.entryField.grid(        row=2, column=0, columnspan=2             )
+        self.EqualSignLabel.grid(    row=1, column=2,               sticky=W+E )
+        self.ToMenu.grid(            row=1, column=3, columnspan=2, sticky=W+E )
+        self.ResponceTextField.grid( row=2, column=3, columnspan=2, sticky=W+E )
 
 
 
@@ -178,7 +176,25 @@ class Converter( Conversion_Structure ):
         return
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~@ END_OF_CLASS
+
+
+def WindowUpdate( window:Tk ):
+    try:
+        window.update_idletasks( )
+        window.update( )
+        return True;
+
+    except _tkinter_TclError:
+        return False;
+
+
 
 if __name__ == '__main__':
-    Converter( )
-    raise SystemExit
+    CVT_winF = Converter( )
+
+    running = True
+    while running:
+
+        running = WindowUpdate( CVT_winF.MASTER )
+    raise SystemExit;
